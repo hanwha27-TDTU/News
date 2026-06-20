@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>News Desk · 브리핑 · Yangiliklar</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --ink:#161a22; --ink-2:#1d222c; --ink-3:#272d39;
+  --paper:#f5f6f8; --card:#ffffff; --hair:#e7e8ec; --hair-2:#dfe1e6;
+  --text:#1a1d24; --muted:#6b7280; --faint:#9aa0aa;
+  --med:#0f8f86;   /* medicine desk */
+  --uz:#2e7dd1;    /* uzbekistan desk */
+  --accent:#4b53c6;
+  --star:#e2a13b;
+  --r:12px;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --serif:'Newsreader',Georgia,serif;
+  --sans:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--sans);color:var(--text);background:var(--paper);display:flex;height:100vh;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+a{color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#cfd2d8;border-radius:6px}
+
+/* ---------- left rail ---------- */
+.rail{width:236px;flex:0 0 236px;background:var(--ink);color:#cfd3db;display:flex;flex-direction:column;height:100%}
+.brand{padding:20px 18px 14px;border-bottom:1px solid var(--ink-3)}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:21px;letter-spacing:-.01em;color:#fff;margin:0;line-height:1.1}
+.brand .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7b8290;margin-top:7px}
+.desks{flex:1;overflow-y:auto;padding:12px 10px}
+.rail-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#6b7280;padding:14px 10px 6px}
+.desk{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:#c2c7d0;text-align:left;padding:9px 10px;border-radius:8px;font-size:13.5px;line-height:1.1}
+.desk:hover{background:var(--ink-2);color:#fff}
+.desk.active{background:var(--ink-3);color:#fff}
+.desk .dot{width:7px;height:7px;border-radius:50%;background:#4b5160;flex:0 0 7px}
+.desk .ct{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:#7b8290}
+.desk.pin{font-weight:500}
+.desk[data-desk="medicine"] .dot{background:var(--med)}
+.desk[data-desk="uzbekistan"] .dot{background:var(--uz)}
+.desk[data-desk="bookmarks"] .dot{background:var(--star)}
+.rail-foot{padding:12px 14px;border-top:1px solid var(--ink-3);font-family:var(--mono);font-size:10px;color:#6b7280;line-height:1.6}
+
+/* ---------- main ---------- */
+.main{flex:1;display:flex;flex-direction:column;height:100%;min-width:0}
+.topbar{display:flex;align-items:center;gap:12px;padding:14px 22px;background:var(--card);border-bottom:1px solid var(--hair)}
+.topbar h2{font-family:var(--serif);font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+.topbar h2 .kr{font-size:14px;color:var(--muted);font-family:var(--sans);font-weight:500;margin-left:8px}
+.spacer{flex:1}
+.status{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+.status b{color:var(--text);font-weight:500}
+.btn{border:1px solid var(--hair-2);background:#fff;border-radius:9px;padding:8px 13px;font-size:12.5px;font-weight:500;color:var(--text);display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:#c3c6cc;background:#fafafb}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary:hover{background:#000}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.fieldbar{display:flex;gap:4px;align-items:center;padding:9px 22px;background:var(--card);border-bottom:1px solid var(--hair);overflow-x:auto}
+.fieldbar:empty{display:none}
+.ftab{flex:0 0 auto;border:1px solid transparent;background:none;color:var(--muted);padding:7px 13px;border-radius:8px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
+.ftab:hover{background:var(--paper);color:var(--text)}
+.ftab.active{background:var(--ink);color:#fff}
+.ftab.med{color:var(--med)}
+.ftab.med.active{background:var(--med);color:#fff}
+.ftab .fct{font-family:var(--mono);font-size:10.5px;opacity:.7}
+.desk .flag{font-size:15px;line-height:1;flex:0 0 auto}
+
+.feed{flex:1;overflow-y:auto;padding:22px}
+.feed-head{display:flex;align-items:baseline;gap:14px;margin:0 2px 16px;flex-wrap:wrap}
+.feed-head .desk-eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.toggles{margin-left:auto;display:flex;gap:14px;align-items:center}
+.toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);user-select:none;cursor:pointer}
+.toggle input{accent-color:var(--accent)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s}
+.card:hover{border-color:#d4d6db;box-shadow:0 6px 22px -14px rgba(20,24,34,.35)}
+.card.med{border-top:3px solid var(--med)}
+.card.uz{border-top:3px solid var(--uz)}
+.thumb{height:148px;background:#eceef1 center/cover no-repeat;position:relative}
+.thumb .badge{position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:6px;background:rgba(22,26,34,.82);color:#fff;backdrop-filter:blur(3px)}
+.card.med .thumb .badge{background:var(--med)}
+.card.uz .thumb .badge{background:var(--uz)}
+.body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:9px;flex:1}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--faint);display:flex;gap:8px;align-items:center}
+.meta .src{color:var(--muted);font-weight:500}
+.title{font-family:var(--serif);font-size:18px;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:0}
+.desc{font-size:13px;line-height:1.5;color:#454a54;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.actions{display:flex;gap:8px;margin-top:auto;padding-top:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--hair-2);background:#fff;border-radius:7px;padding:6px 10px;font-size:11.5px;font-weight:500;color:#444;display:inline-flex;align-items:center;gap:5px}
+.chip:hover{background:#f7f7f9}
+.chip.on{border-color:var(--star);color:var(--star)}
+.chip .sp{font-size:11px}
+
+/* enrichment block */
+.enr{border-top:1px dashed var(--hair-2);margin-top:4px;padding-top:11px;display:none}
+.enr.show{display:block}
+.lang-tabs{display:flex;gap:4px;margin-bottom:8px}
+.lang-tab{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:4px 9px;border-radius:6px;border:1px solid var(--hair-2);background:#fff;color:var(--muted)}
+.lang-tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.summary{font-size:12.5px;line-height:1.55;color:#363b44;white-space:pre-wrap}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;background:#eef0f3;color:#555;padding:3px 7px;border-radius:5px}
+
+.empty{max-width:560px;margin:8vh auto;text-align:center;color:var(--muted)}
+.empty h3{font-family:var(--serif);font-size:26px;color:var(--text);font-weight:600;margin:0 0 10px}
+.empty p{font-size:14px;line-height:1.6;margin:0 0 8px}
+.empty code{font-family:var(--mono);font-size:12px;background:#eceef1;padding:2px 6px;border-radius:5px}
+
+/* ---------- modal ---------- */
+.scrim{position:fixed;inset:0;background:rgba(18,22,30,.5);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.scrim.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:min(560px,100%);max-height:88vh;overflow-y:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.modal h3{font-family:var(--serif);font-size:21px;font-weight:600;margin:0;padding:20px 24px 4px}
+.modal .mh-sub{padding:0 24px 16px;color:var(--muted);font-size:12.5px;border-bottom:1px solid var(--hair)}
+.mbody{padding:18px 24px 8px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:12px;font-weight:600;color:#3a3f48;margin-bottom:6px}
+.field label .hint{font-weight:400;color:var(--faint);font-family:var(--mono);font-size:10.5px;margin-left:6px}
+.field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--hair-2);border-radius:9px;font-size:13px;font-family:var(--sans);color:var(--text);background:#fff}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sql{background:var(--ink);color:#d7dbe2;font-family:var(--mono);font-size:11px;line-height:1.5;padding:14px;border-radius:10px;white-space:pre;overflow-x:auto;position:relative}
+.sql .copy{position:absolute;top:8px;right:8px;background:var(--ink-3);border:0;color:#cfd3db;font-size:10.5px;padding:5px 9px;border-radius:6px}
+.note{font-size:11.5px;color:var(--muted);line-height:1.55;margin:8px 0 0}
+.mfoot{display:flex;gap:10px;justify-content:flex-end;padding:14px 24px 20px;position:sticky;bottom:0;background:#fff;border-top:1px solid var(--hair)}
+.test-out{font-family:var(--mono);font-size:11px;margin:6px 0 0;min-height:16px}
+.ok{color:var(--med)} .err{color:#c0392b}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;z-index:80;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+.spin{width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;display:inline-block;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media(max-width:720px){
+  body{flex-direction:column}
+  .rail{width:100%;flex:0 0 auto;height:auto;flex-direction:row;overflow-x:auto;border-bottom:1px solid var(--ink-3)}
+  .brand{display:none}
+  .desks{display:flex;padding:8px;gap:6px}
+  .rail-label,.rail-foot{display:none}
+  .desk{width:auto;white-space:nowrap}
+  .desk .ct{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- LEFT RAIL -->
+<aside class="rail">
+  <div class="brand">
+    <h1>News&nbsp;Desk</h1>
+    <div class="sub">브리핑 · Yangiliklar</div>
+  </div>
+  <nav class="desks" id="desks"></nav>
+  <div class="rail-foot" id="quotaFoot">GNews 무료 100회/일</div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <h2 id="deskTitle">All<span class="kr">전체</span></h2>
+    <div class="spacer"></div>
+    <div class="status" id="status">설정에서 키를 입력하세요</div>
+    <button class="btn" id="settingsBtn">⚙ 설정</button>
+    <button class="btn primary" id="refreshBtn">↻ 새로고침</button>
+  </header>
+
+  <div class="fieldbar" id="fieldbar"></div>
+
+  <section class="feed" id="feed">
+    <div class="empty" id="empty">
+      <h3>국가 × 분야로 보는 지난 7일</h3>
+      <p><b>🇺🇸 미국 · 🇬🇧 영국 · 🇺🇿 우즈베키스탄</b>을 <b style="color:var(--med)">의학</b>·정치·경제·교육·사회·그 외로 분류.</p>
+      <p>시작하려면 <code>⚙ 설정</code>에서 <b>GNews</b>, <b>Claude</b>, <b>Supabase</b> 키를 입력하세요.</p>
+    </div>
+  </section>
+</main>
+
+<!-- SETTINGS MODAL -->
+<div class="scrim" id="scrim">
+  <div class="modal">
+    <h3>설정 · Settings · Sozlamalar</h3>
+    <div class="mh-sub">키는 이 브라우저에만 저장됩니다 (localStorage). 개인용.</div>
+    <div class="mbody">
+      <div class="field">
+        <label>GNews API Key <span class="hint">gnews.io · free 100/day</span></label>
+        <input id="cfgGnews" type="password" placeholder="gnews api key" />
+      </div>
+      <div class="field">
+        <label>Anthropic API Key <span class="hint">3개국어 요약 · 비우면 비활성</span></label>
+        <input id="cfgClaude" type="password" placeholder="sk-ant-... (선택)" />
+      </div>
+      <div class="field">
+        <label>Claude 모델 <span class="hint">요약용</span></label>
+        <select id="cfgModel">
+          <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 (빠르고 저렴)</option>
+          <option value="claude-sonnet-4-6">claude-sonnet-4-6 (균형)</option>
+          <option value="claude-opus-4-8">claude-opus-4-8 (고품질)</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Supabase URL <span class="hint">선택</span></label>
+          <input id="cfgSbUrl" type="text" placeholder="https://xxx.supabase.co" />
+        </div>
+        <div class="field">
+          <label>Supabase anon key</label>
+          <input id="cfgSbKey" type="password" placeholder="eyJ..." />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>기본 언어 <span class="hint">GNews lang</span></label>
+          <select id="cfgLang">
+            <option value="en">English</option>
+            <option value="ko">한국어</option>
+            <option value="ru">Русский</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>카테고리당 기사 수</label>
+          <input id="cfgMax" type="number" min="3" max="10" value="8" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>우즈벡 현지 RSS <span class="hint">Edge Function 경유</span></label>
+          <label class="toggle" style="font-size:13px;color:var(--text);padding:9px 0"><input type="checkbox" id="cfgUzRss"> Kun.uz·Gazeta.uz·Daryo… 포함</label>
+        </div>
+        <div class="field">
+          <label>자동 요약 (상위 N) <span class="hint">0 = 끔 · API 사용</span></label>
+          <input id="cfgAutoN" type="number" min="0" max="20" value="0" />
+        </div>
+      </div>
+
+      <details>
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:#3a3f48;margin-bottom:8px">🛰️ 우즈벡 RSS Edge Function 배포 (한 번만)</summary>
+        <p class="note" style="margin-bottom:8px">함께 받은 <code>uz-news.ts</code> 코드를 함수로 배포하세요. 함수 URL은 <code>{Supabase URL}/functions/v1/uz-news</code>로 자동 호출됩니다.</p>
+        <div class="sql" id="edgeBlock"><button class="copy" id="copyEdge">복사</button>supabase functions new uz-news
+# 생성된 index.ts 에 uz-news.ts 내용 붙여넣기
+supabase functions deploy uz-news --no-verify-jwt</div>
+        <p class="note">--no-verify-jwt 로 배포하면 브라우저에서 인증 없이 호출됩니다 (개인용 권장). 일반 배포 시엔 anon key 가 자동 전송됩니다.</p>
+      </details>
+
+      <details>
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:#3a3f48;margin-bottom:8px">📋 Supabase 테이블 SQL (한 번만 실행)</summary>
+        <div class="sql" id="sqlBlock"><button class="copy" id="copySql">복사</button>create table if not exists news_items (
+  url text primary key,
+  title text, source text, category text, desk text,
+  country text, field text,
+  published_at timestamptz, image text,
+  description text, content text, lang text,
+  summary_ko text, summary_en text, summary_uz text,
+  tags text[],
+  enriched boolean default false,
+  bookmarked boolean default false,
+  fetched_at timestamptz default now()
+);
+-- 기존 테이블이 있으면(이전 버전 사용자):
+alter table news_items add column if not exists country text;
+alter table news_items add column if not exists field text;
+-- 개인용: RLS 끄기 (또는 anon 허용 정책 추가)
+alter table news_items disable row level security;</div>
+        <p class="note">Supabase 대시보드 → SQL Editor 에 붙여넣고 Run. RLS를 끄는 대신 정책을 쓰려면 anon에 select/insert/update 허용 정책을 추가하세요.</p>
+      </details>
+
+      <p class="test-out" id="testOut"></p>
+    </div>
+    <div class="mfoot">
+      <button class="btn" id="testBtn">연결 테스트</button>
+      <button class="btn" id="cancelBtn">닫기</button>
+      <button class="btn primary" id="saveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* ---------------- config ---------------- */
+const LS='newsdesk.cfg.v1';
+const defaultCfg={gnews:'',claude:'',model:'claude-haiku-4-5-20251001',sbUrl:'',sbKey:'',lang:'en',max:8,uzRss:true,autoN:0};
+let cfg=loadCfg();
+function loadCfg(){try{return {...defaultCfg,...JSON.parse(localStorage.getItem(LS)||'{}')};}catch{return {...defaultCfg};}}
+function saveCfg(){localStorage.setItem(LS,JSON.stringify(cfg));}
+
+let sb=null;
+function initSb(){
+  if(cfg.sbUrl && cfg.sbKey){ try{ sb=createClient(cfg.sbUrl,cfg.sbKey); }catch(e){ sb=null; } }
+  else sb=null;
+}
+initSb();
+
+/* ---------------- countries (macro) & fields (meso) ---------------- */
+const COUNTRIES=[
+  {id:'all',label:'All',kr:'전체'},
+  {id:'us',label:'United States',kr:'미국',flag:'🇺🇸'},
+  {id:'gb',label:'United Kingdom',kr:'영국',flag:'🇬🇧'},
+  {id:'uz',label:'Uzbekistan',kr:'우즈베키스탄',flag:'🇺🇿',accent:'uz'},
+  {id:'bookmarks',label:'Bookmarks',kr:'즐겨찾기',star:true},
+];
+const FIELDS=[
+  {id:'all',label:'All',kr:'전체분야'},
+  {id:'medicine',label:'Medicine',kr:'의학',med:true},
+  {id:'politics',label:'Politics',kr:'정치'},
+  {id:'economy',label:'Economy',kr:'경제'},
+  {id:'education',label:'Education',kr:'교육'},
+  {id:'society',label:'Society',kr:'사회'},
+  {id:'other',label:'Other',kr:'그 외'},
+];
+// GNews top-headlines categories fetched per country (UZ comes from RSS)
+const COUNTRY_CATS=['general','nation','business','health','technology'];
+const GNEWS_COUNTRIES=[{code:'us'},{code:'gb'}];
+
+// ---- token-free keyword classifier (EN + UZ, apostrophe-normalised) ----
+const norm=s=>(s||'').toLowerCase().replace(/[\u02bb\u02bc\u2018\u2019'`]/g,'');
+const FIELD_ORDER=['medicine','politics','economy','education','society']; // 'other' = fallback
+const FIELD_KW={
+  medicine:['health','medicine','medical','clinical','disease','hospital','doctor','vaccine','cancer','drug','virus','covid','surgery','patient','outbreak','therapy','diabetes','pandemic','mental health',
+            'tibbiyot','sogliq','sogliqni','shifokor','kasallik','vaksina','jarrohlik','bemor','salomatlik','shifoxona','dori'],
+  politics:['election','elections','senate','congress','parliament','president','government','minister','policy','vote','votes','party','diplomat','sanction','sanctions','military','treaty','election',
+            'siyosat','saylov','parlament','prezident','hukumat','vazir','deputat','qonun','partiya','harbiy','diplomatiya'],
+  economy:['economy','economic','business','market','markets','trade','inflation','gdp','bank','banking','stock','stocks','investment','tax','taxes','currency','company','tariff','tariffs','export','exports','import','imports','budget',
+           'iqtisod','iqtisodiyot','bozor','savdo','inflatsiya','investitsiya','soliq','valyuta','kompaniya','eksport','byudjet'],
+  education:['education','school','schools','university','universities','student','students','teacher','teachers','exam','exams','curriculum','college','academic','scholarship',
+             'talim','maktab','universitet','talaba','oqituvchi','imtihon','grant','stipendiya','bilim'],
+  society:['society','community','crime','police','protest','protests','culture','religion','family','immigration','housing','welfare','disaster','festival','accident',
+           'jamiyat','ijtimoiy','jinoyat','politsiya','norozilik','madaniyat','oila','migratsiya','ofat','bayram'],
+};
+const FIELD_RX=Object.fromEntries(Object.entries(FIELD_KW).map(([f,words])=>{
+  const esc=words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  return [f,new RegExp('\\b('+esc.join('|')+')\\b','g')];
+}));
+function classifyField(it){
+  if(it.category==='health') return 'medicine';   // GNews category as a strong prior
+  if(it.category==='business') return 'economy';
+  const t=norm((it.title||'')+' '+(it.description||''));
+  let best='other', bestScore=0;
+  for(const f of FIELD_ORDER){
+    let s=(t.match(FIELD_RX[f])||[]).length;
+    if(f==='medicine') s*=1.25;                    // medicine emphasis
+    if(s>bestScore){ bestScore=s; best=f; }
+  }
+  return bestScore>0?best:'other';
+}
+
+// credibility whitelist
+const TRUST=['reuters','associated press','ap news','apnews','bbc','the guardian','guardian','bloomberg','financial times','the new york times','nytimes','washington post','npr','al jazeera','nature','science','the lancet','nejm','stat','cnn','axios','politico','the economist','wall street journal','wsj','dw','france 24'];
+const TRUST_UZ=['gazeta','kun.uz','daryo','spot.uz','uza','qalampir','xabar','podrobno','anhor','uzdaily','uzreport','rferl','eurasianet'];
+
+/* ---------------- state ---------------- */
+let items=new Map();      // url -> item
+let activeCountry='all';  // 'all'|'us'|'gb'|'uz'|'bookmarks'
+let activeField='all';    // 'all'|medicine|politics|economy|education|society|other
+let trustedOnly=false;
+let lastFetch=null;
+let fetching=false;
+
+/* ---------------- DOM ---------------- */
+const $=s=>document.querySelector(s);
+const feed=$('#feed'), empty=$('#empty'), status=$('#status'), deskTitle=$('#deskTitle');
+
+/* ---------------- build rail (countries) ---------------- */
+function buildRail(){
+  const nav=$('#desks'); nav.innerHTML='';
+  nav.insertAdjacentHTML('beforeend','<div class="rail-label">Country · 국가</div>');
+  COUNTRIES.forEach(c=>{
+    if(c.id==='bookmarks') nav.insertAdjacentHTML('beforeend','<div class="rail-label">Saved</div>');
+    const b=document.createElement('button');
+    b.className='desk'+(c.accent?' pin':'')+(c.id===activeCountry?' active':'');
+    if(c.accent) b.dataset.desk=c.accent;
+    b.dataset.country=c.id;
+    const icon=c.flag?`<span class="flag">${c.flag}</span>`:`<span class="dot"${c.star?' style="background:var(--star)"':''}></span>`;
+    b.innerHTML=`${icon}<span>${c.label}</span><span class="ct" data-cct="${c.id}"></span>`;
+    b.onclick=()=>{activeCountry=c.id; activeField='all'; render();
+      document.querySelectorAll('[data-country]').forEach(x=>x.classList.toggle('active',x.dataset.country===c.id));};
+    nav.appendChild(b);
+  });
+}
+
+/* ---------------- build field bar (meso) ---------------- */
+function buildFieldBar(){
+  const bar=$('#fieldbar');
+  if(activeCountry==='bookmarks'){ bar.innerHTML=''; return; } // saved view: no field tabs
+  const fc=fieldCounts();
+  bar.innerHTML=FIELDS.map(f=>{
+    const on=f.id===activeField;
+    const n=f.id==='all'?Object.values(fc).reduce((a,b)=>a+b,0):(fc[f.id]||0);
+    return `<button class="ftab${f.med?' med':''}${on?' active':''}" data-field="${f.id}">${f.kr}${n?`<span class="fct">${n}</span>`:''}</button>`;
+  }).join('');
+  bar.querySelectorAll('.ftab').forEach(t=>t.onclick=()=>{activeField=t.dataset.field; render();});
+}
+
+/* ---------------- helpers ---------------- */
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function cutoff(){const d=new Date();d.setDate(d.getDate()-7);return d;}
+function timeAgo(iso){
+  const s=(Date.now()-new Date(iso))/1000;
+  if(s<3600)return Math.max(1,Math.round(s/60))+'m';
+  if(s<86400)return Math.round(s/3600)+'h';
+  return Math.round(s/86400)+'d';
+}
+function isTrusted(src,country){
+  const s=(src||'').toLowerCase();
+  const list= country==='uz' ? TRUST.concat(TRUST_UZ) : TRUST;
+  return list.some(t=>s.includes(t));
+}
+
+/* ---------------- GNews fetch ---------------- */
+async function gnews(url){
+  const r=await fetch(url);
+  if(!r.ok){
+    const body=await r.text().catch(()=>'');
+    throw new Error(`GNews ${r.status} ${body.slice(0,120)}`);
+  }
+  return r.json();
+}
+function mapArticle(a,country,category,lang){
+  const it={
+    url:a.url, title:a.title||'', source:a.source?.name||'', country, category, field:'other',
+    published_at:a.publishedAt, image:a.image||'', description:a.description||'',
+    content:a.content||'', lang:lang||'en',
+    summary_ko:null,summary_en:null,summary_uz:null,tags:null,
+    enriched:false, bookmarked:false, fetched_at:new Date().toISOString()
+  };
+  it.field=classifyField(it);
+  return it;
+}
+
+async function refresh(){
+  if(!cfg.gnews){ toast('GNews 키를 먼저 설정하세요'); openSettings(); return; }
+  if(fetching) return;
+  fetching=true;
+  const btn=$('#refreshBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span> 수집 중';
+  let added=0, calls=0, errs=[]; const fresh=new Map();
+  const base='https://gnews.io/api/v4';
+  const max=Math.min(10,Math.max(3,+cfg.max||8));
+  const addItem=it=>{ if(it.url && !items.has(it.url)){ items.set(it.url,it); fresh.set(it.url,it); added++; } };
+
+  try{
+    // ---- US / UK via GNews (country axis) ----
+    for(const c of GNEWS_COUNTRIES){
+      for(const cat of COUNTRY_CATS){
+        try{
+          calls++;
+          const j=await gnews(`${base}/top-headlines?category=${cat}&country=${c.code}&lang=en&max=${max}&apikey=${cfg.gnews}`);
+          (j.articles||[]).forEach(a=>addItem(mapArticle(a,c.code,cat,'en')));
+        }catch(e){ errs.push(`${c.code}/${cat}: `+e.message); }
+        await sleep(160);
+      }
+      // education supplement (GNews has no 'education' category)
+      try{
+        calls++;
+        const j=await gnews(`${base}/search?q=${encodeURIComponent('education OR university OR school OR exam')}&country=${c.code}&lang=en&max=${max}&apikey=${cfg.gnews}`);
+        (j.articles||[]).forEach(a=>addItem(mapArticle(a,c.code,'education',a.url?'education':'')));
+      }catch(e){ errs.push(`${c.code}/edu: `+e.message); }
+      await sleep(160);
+    }
+
+    // ---- Uzbekistan via native-uz RSS (Edge Function proxy) ----
+    if(cfg.uzRss && cfg.sbUrl){
+      try{
+        const edge=cfg.sbUrl.replace(/\/+$/,'')+'/functions/v1/uz-news';
+        const h={}; if(cfg.sbKey){ h['Authorization']='Bearer '+cfg.sbKey; h['apikey']=cfg.sbKey; }
+        const r=await fetch(edge,{headers:h});
+        if(r.ok){
+          const j=await r.json();
+          (j.articles||[]).forEach(a=>{
+            if(a.url && !items.has(a.url)){
+              const it={url:a.url,title:a.title||'',source:a.source||'',country:'uz',category:'',field:'other',
+                published_at:a.published_at,image:a.image||'',description:a.description||'',content:'',lang:a.lang||'uz',
+                summary_ko:null,summary_en:null,summary_uz:null,tags:null,enriched:false,bookmarked:false,fetched_at:new Date().toISOString()};
+              it.field=classifyField(it);
+              items.set(a.url,it); fresh.set(a.url,it); added++;
+            }
+          });
+        } else errs.push('uz-rss: '+r.status);
+      }catch(e){ errs.push('uz-rss: '+e.message); }
+    } else if(cfg.uzRss && !cfg.sbUrl){
+      errs.push('uz-rss: Supabase URL 필요');
+    }
+
+    lastFetch=new Date();
+    pruneItems();
+    if(sb) await pushToSupabase([...fresh.values()]);
+    if(errs.length) toast(`수집 완료 · ${added}건 (오류 ${errs.length})`);
+    else toast(`수집 완료 · 새 기사 ${added}건`);
+    if(errs.length) console.warn('fetch errors:',errs);
+    if(cfg.autoN>0){ render(); await runAutoEnrich(); }
+  }catch(e){
+    toast('수집 실패: '+e.message);
+  }finally{
+    fetching=false; btn.disabled=false; btn.innerHTML='↻ 새로고침';
+    updateStatus(calls);
+    render();
+  }
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function pruneItems(){
+  const co=cutoff();
+  for(const [url,it] of items){
+    if(!it.bookmarked && it.published_at && new Date(it.published_at)<co) items.delete(url);
+  }
+}
+
+/* ---------------- Supabase sync ---------------- */
+async function pushToSupabase(rows){
+  if(!sb) return;
+  try{
+    const payload=rows.map(r=>({...r}));
+    const {error}=await sb.from('news_items').upsert(payload,{onConflict:'url'});
+    if(error) console.warn('supabase upsert',error.message);
+  }catch(e){ console.warn('supabase',e.message); }
+}
+async function loadFromSupabase(){
+  if(!sb) return;
+  try{
+    const {data,error}=await sb.from('news_items')
+      .select('*').or(`published_at.gte.${cutoff().toISOString()},bookmarked.eq.true`)
+      .order('published_at',{ascending:false}).limit(500);
+    if(error){ console.warn('supabase load',error.message); return; }
+    (data||[]).forEach(r=>items.set(r.url,r));
+  }catch(e){ console.warn('supabase load',e.message); }
+}
+async function patchRow(url,patch){
+  const it=items.get(url); if(!it) return;
+  Object.assign(it,patch);
+  if(sb){ try{ await sb.from('news_items').update(patch).eq('url',url); }catch(e){ console.warn(e.message); } }
+}
+
+/* ---------------- Claude enrichment ---------------- */
+async function enrich(url,silent=false){
+  const it=items.get(url); if(!it) return;
+  const useKey=!!cfg.claude;
+  const model=useKey?(cfg.model||'claude-haiku-4-5-20251001'):'claude-sonnet-4-20250514';
+  const headers={'content-type':'application/json'};
+  if(useKey){ headers['x-api-key']=cfg.claude; headers['anthropic-version']='2023-06-01'; headers['anthropic-dangerous-direct-browser-access']='true'; }
+
+  const prompt=`You are a multilingual news editor. Summarize the article below in THREE languages.
+Return ONLY a JSON object, no markdown, no preamble, with exactly these keys:
+{"ko":"...", "en":"...", "uz":"...", "tags":["...","..."]}
+- Each summary: 2-3 tight sentences capturing the key facts. ko=Korean, en=English, uz=Uzbek (latin).
+- tags: 2-4 short topical tags in English.
+${it.field==='medicine'?'- This is a MEDICINE item: foreground clinical / public-health relevance.':''}
+
+TITLE: ${it.title}
+SOURCE: ${it.source}
+DESCRIPTION: ${it.description}
+CONTENT: ${(it.content||'').slice(0,1200)}`;
+
+  const body={model,max_tokens:1500,messages:[{role:'user',content:prompt}]};
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
+    if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error(`${r.status} ${t.slice(0,140)}`); }
+    const data=await r.json();
+    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    let clean=text.replace(/```json|```/g,'').trim();
+    const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
+    if(a>=0 && b>a) clean=clean.slice(a,b+1);
+    const parsed=JSON.parse(clean);
+    await patchRow(url,{
+      summary_ko:parsed.ko||'', summary_en:parsed.en||'', summary_uz:parsed.uz||'',
+      tags:Array.isArray(parsed.tags)?parsed.tags:null, enriched:true
+    });
+    return true;
+  }catch(e){
+    if(!silent) toast('요약 실패: '+e.message);
+    return false;
+  }
+}
+
+async function runAutoEnrich(){
+  const n=Math.min(20,+cfg.autoN||0); if(n<=0) return;
+  const co=cutoff();
+  const pool=[...items.values()].filter(it=>!it.enriched && (!it.published_at||new Date(it.published_at)>=co));
+  // priority: medicine field & Uzbekistan first, then most recent
+  pool.sort((a,b)=>{
+    const pa=(a.field==='medicine'||a.country==='uz')?0:1;
+    const pb=(b.field==='medicine'||b.country==='uz')?0:1;
+    if(pa!==pb) return pa-pb;
+    return new Date(b.published_at||0)-new Date(a.published_at||0);
+  });
+  const queue=pool.slice(0,n);
+  let done=0, failed=false;
+  for(const it of queue){
+    status.innerHTML=`<b>자동 요약</b> ${done+1}/${queue.length}…`;
+    const ok=await enrich(it.url,true);
+    if(!ok){ failed=true; break; }
+    done++; await sleep(450);
+  }
+  render();
+  if(failed) toast('자동 요약 중단 — Claude 키/네트워크 확인');
+  else if(done) toast(`자동 요약 ${done}건 완료`);
+}
+
+/* ---------------- render ---------------- */
+function recentFilter(){ const co=cutoff(); return it=>!it.published_at || new Date(it.published_at)>=co; }
+
+function visibleItems(){
+  const recent=recentFilter();
+  let arr=[...items.values()];
+  if(activeCountry==='bookmarks') arr=arr.filter(it=>it.bookmarked); // saved ignore window
+  else if(activeCountry!=='all') arr=arr.filter(it=>it.country===activeCountry && recent(it));
+  else arr=arr.filter(recent);
+  if(activeField!=='all') arr=arr.filter(it=>it.field===activeField);
+  if(trustedOnly) arr=arr.filter(it=>isTrusted(it.source,it.country));
+  arr.sort((a,b)=>new Date(b.published_at||0)-new Date(a.published_at||0));
+  return arr;
+}
+
+// counts for the left rail (per country)
+function countryCounts(){
+  const recent=recentFilter();
+  const everything=[...items.values()];
+  const all=everything.filter(recent);
+  const c={};
+  COUNTRIES.forEach(co=>{
+    if(co.id==='all') c[co.id]=all.length;
+    else if(co.id==='bookmarks') c[co.id]=everything.filter(i=>i.bookmarked).length;
+    else c[co.id]=all.filter(i=>i.country===co.id).length;
+  });
+  return c;
+}
+// counts for the field bar (within the active country scope)
+function fieldCounts(){
+  const recent=recentFilter();
+  let scope=[...items.values()];
+  if(activeCountry==='bookmarks') scope=scope.filter(it=>it.bookmarked);
+  else if(activeCountry!=='all') scope=scope.filter(it=>it.country===activeCountry && recent(it));
+  else scope=scope.filter(recent);
+  const c={};
+  FIELDS.forEach(f=>{ if(f.id!=='all') c[f.id]=scope.filter(i=>i.field===f.id).length; });
+  return c;
+}
+
+function render(){
+  const co=COUNTRIES.find(x=>x.id===activeCountry)||COUNTRIES[0];
+  deskTitle.innerHTML=`${co.flag?co.flag+' ':''}${co.label}<span class="kr">${co.kr}</span>`;
+  // rail counts
+  const cc=countryCounts();
+  Object.entries(cc).forEach(([k,v])=>{const el=document.querySelector(`[data-cct="${k}"]`);if(el)el.textContent=v||'';});
+  buildFieldBar();
+
+  if(items.size===0){ feed.innerHTML=''; feed.appendChild(empty); return; }
+  const arr=visibleItems();
+
+  const fld=FIELDS.find(f=>f.id===activeField);
+  const eyebrow=`${co.kr}${activeField!=='all'?' · '+fld.kr:''} · 지난 7일`.toUpperCase();
+  feed.innerHTML=`
+    <div class="feed-head">
+      <span class="desk-eyebrow">${eyebrow}</span>
+      <span class="desk-eyebrow" style="color:var(--faint)">${arr.length} items</span>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="wlToggle" ${trustedOnly?'checked':''}> 공신력 소스만 (Trusted)</label>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>`;
+  $('#wlToggle').onchange=e=>{trustedOnly=e.target.checked; render();};
+  const grid=$('#grid');
+  if(arr.length===0){ grid.innerHTML=`<p style="color:var(--muted);font-size:14px">표시할 기사가 없습니다. ↻ 새로고침을 누르거나 다른 국가·분야를 선택하세요.</p>`; return; }
+  arr.forEach(it=>grid.appendChild(card(it)));
+}
+
+const FLAG={us:'🇺🇸',gb:'🇬🇧',uz:'🇺🇿'};
+function card(it){
+  const fld=FIELDS.find(f=>f.id===it.field);
+  const el=document.createElement('article');
+  el.className='card'+(it.field==='medicine'?' med':it.country==='uz'?' uz':'');
+  const badge=`${FLAG[it.country]||'🌐'} ${fld?fld.kr:'그 외'}`;
+  const safeImg=(it.image||'').replace(/["'()\\]/g,'');
+  const thumb=safeImg
+    ?`<div class="thumb" style="background-image:url('${safeImg}')"><span class="badge">${badge}</span></div>`
+    :`<div class="thumb"><span class="badge">${badge}</span></div>`;
+  el.innerHTML=`
+    ${thumb}
+    <div class="body">
+      <div class="meta"><span class="src">${esc(it.source)}</span>${it.published_at?`<span>· ${timeAgo(it.published_at)} ago</span>`:''}</div>
+      <h3 class="title">${esc(it.title)}</h3>
+      <p class="desc">${esc(it.description)}</p>
+      <div class="actions">
+        <button class="chip enrichBtn">✦ 3개국어 요약</button>
+        <button class="chip bmBtn ${it.bookmarked?'on':''}"><span class="sp">${it.bookmarked?'★':'☆'}</span> 저장</button>
+        <a class="chip" href="${it.url}" target="_blank" rel="noopener">원문 ↗</a>
+      </div>
+      <div class="enr ${it.enriched?'show':''}"></div>
+    </div>`;
+
+  const enrEl=el.querySelector('.enr');
+  if(it.enriched) renderEnr(enrEl,it);
+
+  el.querySelector('.enrichBtn').onclick=async(e)=>{
+    if(!cfg.claude){ toast('Anthropic 키가 없으면 Claude.ai 아티팩트 안에서만 동작합니다'); }
+    const b=e.currentTarget; b.disabled=true; b.innerHTML='<span class="spin"></span> 요약 중';
+    const ok=await enrich(it.url);
+    b.disabled=false; b.innerHTML='✦ 3개국어 요약';
+    if(ok){ enrEl.classList.add('show'); renderEnr(enrEl,items.get(it.url)); }
+  };
+  el.querySelector('.bmBtn').onclick=async(e)=>{
+    const nv=!it.bookmarked;
+    await patchRow(it.url,{bookmarked:nv});
+    const b=e.currentTarget; b.classList.toggle('on',nv);
+    b.querySelector('.sp').textContent=nv?'★':'☆';
+    if(activeCountry==='bookmarks'){ render(); }
+    else { const el2=document.querySelector('[data-cct="bookmarks"]'); if(el2) el2.textContent=countryCounts().bookmarks||''; }
+  };
+  return el;
+}
+
+function renderEnr(enrEl,it){
+  const langs=[['ko','한국어',it.summary_ko],['en','EN',it.summary_en],['uz','Oʻzbek',it.summary_uz]].filter(l=>l[2]);
+  if(langs.length===0){ enrEl.innerHTML='<p class="summary" style="color:var(--faint)">요약 없음</p>'; return; }
+  enrEl.innerHTML=`
+    <div class="lang-tabs">${langs.map((l,i)=>`<button class="lang-tab ${i===0?'active':''}" data-l="${l[0]}">${l[1]}</button>`).join('')}</div>
+    <div class="summary js-sm"></div>
+    ${it.tags&&it.tags.length?`<div class="tags">${it.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`:''}`;
+  const sm=enrEl.querySelector('.js-sm');
+  const map=Object.fromEntries(langs.map(l=>[l[0],l[2]]));
+  sm.textContent=langs[0][2];
+  enrEl.querySelectorAll('.lang-tab').forEach(t=>t.onclick=()=>{
+    enrEl.querySelectorAll('.lang-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active'); sm.textContent=map[t.dataset.l];
+  });
+}
+
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------------- status ---------------- */
+function updateStatus(calls){
+  if(!cfg.gnews){ status.innerHTML='⚙ 설정에서 GNews 키를 입력하세요'; return; }
+  const parts=[];
+  if(lastFetch) parts.push(`<b>${lastFetch.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</b> 갱신`);
+  parts.push(`${items.size}건`);
+  if(calls) parts.push(`API ${calls}회`);
+  parts.push(sb?'Supabase ✓':'Supabase 미연결');
+  status.innerHTML=parts.join(' · ');
+}
+
+/* ---------------- settings modal ---------------- */
+const scrim=$('#scrim');
+function openSettings(){
+  $('#cfgGnews').value=cfg.gnews; $('#cfgClaude').value=cfg.claude;
+  $('#cfgModel').value=cfg.model; $('#cfgSbUrl').value=cfg.sbUrl; $('#cfgSbKey').value=cfg.sbKey;
+  $('#cfgLang').value=cfg.lang; $('#cfgMax').value=cfg.max;
+  $('#cfgUzRss').checked=!!cfg.uzRss; $('#cfgAutoN').value=cfg.autoN||0; $('#testOut').textContent='';
+  scrim.classList.add('show');
+}
+function closeSettings(){scrim.classList.remove('show');}
+$('#settingsBtn').onclick=openSettings;
+$('#cancelBtn').onclick=closeSettings;
+scrim.onclick=e=>{if(e.target===scrim)closeSettings();};
+$('#saveBtn').onclick=()=>{
+  cfg={...cfg,
+    gnews:$('#cfgGnews').value.trim(), claude:$('#cfgClaude').value.trim(),
+    model:$('#cfgModel').value, sbUrl:$('#cfgSbUrl').value.trim(), sbKey:$('#cfgSbKey').value.trim(),
+    lang:$('#cfgLang').value, max:+$('#cfgMax').value||8,
+    uzRss:$('#cfgUzRss').checked, autoN:Math.max(0,+$('#cfgAutoN').value||0)};
+  saveCfg(); initSb(); closeSettings(); toast('저장됨');
+  boot();
+};
+$('#copySql').onclick=()=>{const t=$('#sqlBlock').textContent.replace('복사','').trim();navigator.clipboard.writeText(t);toast('SQL 복사됨');};
+$('#copyEdge').onclick=()=>{const t=$('#edgeBlock').textContent.replace('복사','').trim();navigator.clipboard.writeText(t);toast('명령 복사됨');};
+$('#testBtn').onclick=async()=>{
+  const out=$('#testOut'); out.innerHTML='테스트 중…';
+  const g=$('#cfgGnews').value.trim(), u=$('#cfgSbUrl').value.trim(), k=$('#cfgSbKey').value.trim();
+  let lines=[];
+  // gnews
+  if(g){
+    try{ const r=await fetch(`https://gnews.io/api/v4/top-headlines?category=general&lang=en&max=1&apikey=${g}`);
+      lines.push(r.ok?'<span class="ok">✓ GNews OK</span>':`<span class="err">✗ GNews ${r.status}</span>`);
+    }catch(e){ lines.push('<span class="err">✗ GNews 네트워크 오류</span>'); }
+  } else lines.push('<span class="err">· GNews 키 없음</span>');
+  // supabase
+  if(u&&k){
+    try{ const c=createClient(u,k); const {error}=await c.from('news_items').select('url').limit(1);
+      lines.push(error?`<span class="err">✗ Supabase: ${error.message}</span>`:'<span class="ok">✓ Supabase OK</span>');
+    }catch(e){ lines.push('<span class="err">✗ Supabase 연결 실패</span>'); }
+  } else lines.push('<span class="err">· Supabase 미설정 (선택)</span>');
+  out.innerHTML=lines.join('<br>');
+};
+
+$('#refreshBtn').onclick=refresh;
+
+/* ---------------- boot ---------------- */
+async function boot(){
+  buildRail();
+  if(sb){ await loadFromSupabase(); }
+  updateStatus(0);
+  render();
+  if(!cfg.gnews){ /* show empty */ }
+}
+buildRail();
+boot();
+</script>
+</body>
+</html>
