@@ -3,10 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>News Desk · 브리핑 · Yangiliklar</title>
+<title>Dr. Bugeon의 뉴스데스크 · News Desk</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
 :root{
   --ink:#161a22; --ink-2:#1d222c; --ink-3:#272d39;
   --paper:#f5f6f8; --card:#ffffff; --hair:#e7e8ec; --hair-2:#dfe1e6;
@@ -16,9 +14,9 @@
   --accent:#4b53c6;
   --star:#e2a13b;
   --r:12px;
-  --mono:'IBM Plex Mono',ui-monospace,monospace;
-  --serif:'Newsreader',Georgia,serif;
-  --sans:'Inter',system-ui,sans-serif;
+  --mono:ui-monospace,'Cascadia Mono','SFMono-Regular',Consolas,monospace;
+  --serif:Georgia,'Times New Roman',serif;
+  --sans:system-ui,'Segoe UI',Apple SD Gothic Neo,'Malgun Gothic',sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
@@ -131,6 +129,12 @@ a{color:inherit}
 .mfoot{display:flex;gap:10px;justify-content:flex-end;padding:14px 24px 20px;position:sticky;bottom:0;background:#fff;border-top:1px solid var(--hair)}
 .test-out{font-family:var(--mono);font-size:11px;margin:6px 0 0;min-height:16px}
 .ok{color:var(--med)} .err{color:#c0392b}
+.syncbox{border:1px solid var(--hair);border-radius:10px;padding:12px;margin:14px 0;background:#fafafb}
+.syncbox h4{margin:0 0 8px;font-size:12.5px;color:#303642}
+.sync-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.sync-report{font-family:var(--mono);font-size:10.5px;line-height:1.55;color:var(--muted);white-space:pre-wrap;margin-top:8px}
+.dev-info{font-size:11px;line-height:1.55;color:var(--muted)}
+.dev-info b{color:var(--text)}
 
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;z-index:80;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
@@ -146,6 +150,13 @@ a{color:inherit}
   .rail-label,.rail-foot{display:none}
   .desk{width:auto;white-space:nowrap}
   .desk .ct{display:none}
+}
+@media(max-width:520px){
+  .scrim{padding:12px}
+  .modal{border-radius:14px}
+  .row2{grid-template-columns:1fr}
+  .mfoot{gap:8px;padding:12px 16px 16px}
+  .mfoot .btn{padding:8px 11px}
 }
 </style>
 </head>
@@ -252,6 +263,7 @@ supabase functions deploy uz-news --no-verify-jwt</div>
         <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:#3a3f48;margin-bottom:8px">📋 Supabase 테이블 SQL (한 번만 실행)</summary>
         <div class="sql" id="sqlBlock"><button class="copy" id="copySql">복사</button>create table if not exists news_items (
   url text primary key,
+  id text,
   title text, source text, category text, desk text,
   country text, field text,
   published_at timestamptz, image text,
@@ -260,14 +272,63 @@ supabase functions deploy uz-news --no-verify-jwt</div>
   tags text[],
   enriched boolean default false,
   bookmarked boolean default false,
-  fetched_at timestamptz default now()
+  fetched_at timestamptz default now(),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  deleted_at timestamptz
 );
--- 기존 테이블이 있으면(이전 버전 사용자):
+create table if not exists language_sync_meta (
+  key text primary key,
+  value text,
+  updated_at timestamptz default now()
+);
+alter table news_items add column if not exists id text;
+alter table news_items add column if not exists category text;
+alter table news_items add column if not exists desk text;
 alter table news_items add column if not exists country text;
 alter table news_items add column if not exists field text;
--- 개인용: RLS 끄기 (또는 anon 허용 정책 추가)
-alter table news_items disable row level security;</div>
+alter table news_items add column if not exists content text;
+alter table news_items add column if not exists lang text;
+alter table news_items add column if not exists summary_ko text;
+alter table news_items add column if not exists summary_en text;
+alter table news_items add column if not exists summary_uz text;
+alter table news_items add column if not exists tags text[];
+alter table news_items add column if not exists enriched boolean default false;
+alter table news_items add column if not exists bookmarked boolean default false;
+alter table news_items add column if not exists fetched_at timestamptz default now();
+alter table news_items add column if not exists created_at timestamptz default now();
+alter table news_items add column if not exists updated_at timestamptz default now();
+alter table news_items add column if not exists deleted_at timestamptz;
+update news_items set id = coalesce(id, md5(url)), created_at = coalesce(created_at, fetched_at, now()), updated_at = coalesce(updated_at, fetched_at, published_at, now());
+create unique index if not exists news_items_id_uidx on news_items (id);
+create index if not exists news_items_updated_idx on news_items (updated_at desc);
+create index if not exists news_items_published_idx on news_items (published_at desc);
+create index if not exists news_items_country_idx on news_items (country);
+create index if not exists news_items_field_idx on news_items (field);
+alter table news_items disable row level security;
+alter table language_sync_meta disable row level security;</div>
         <p class="note">Supabase 대시보드 → SQL Editor 에 붙여넣고 Run. RLS를 끄는 대신 정책을 쓰려면 anon에 select/insert/update 허용 정책을 추가하세요.</p>
+      </details>
+
+      <div class="syncbox">
+        <h4>동기화 점검</h4>
+        <p class="note">일반 동기화는 최신 `updated_at` 기준으로 병합합니다. “이 기기 → 클라우드 최종본”은 현재 화면 캐시를 기준본으로 저장하고 원격 전용 항목을 정리합니다.</p>
+        <div class="sync-actions">
+          <button class="btn" id="syncNowBtn">지금 동기화</button>
+          <button class="btn" id="checkVersionBtn">저장본 버전 확인</button>
+          <button class="btn" id="makeCanonicalBtn">이 기기 → 클라우드 최종본</button>
+        </div>
+        <div class="sync-report" id="syncReport">Supabase 연결 후 확인할 수 있습니다.</div>
+      </div>
+
+      <details>
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:#3a3f48;margin-bottom:8px">개발자 정보</summary>
+        <div class="dev-info">
+          <b>앱 이름·버전</b>: Dr. Bugeon의 뉴스데스크 v2026.06.20-sync-audit<br>
+          <b>코드 최종 수정</b>: 2026-06-20 12:29<br>
+          <b>현재 파일명</b>: Dr. Bugeon의 뉴스데스크_동기화전수점검<br>
+          <b>업데이트 이력</b>: Supabase updated_at 기준 병합, canonical_version 최종본 지정, 저장본 버전 확인, 연결 테스트 후 즉시 동기화, 개발자 정보 추가
+        </div>
       </details>
 
       <p class="test-out" id="testOut"></p>
@@ -283,19 +344,41 @@ alter table news_items disable row level security;</div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 /* ---------------- config ---------------- */
 const LS='newsdesk.cfg.v1';
+const DATA_LS='newsdesk.items.v2';
+const SYNC_LS='newsdesk.sync.v2';
+const DEVICE_LS='newsdesk.device.v1';
+const APP_VERSION='2026.06.20-sync-audit';
+const APP_FILE_FALLBACK='Dr. Bugeon의 뉴스데스크_동기화전수점검';
 const defaultCfg={gnews:'',claude:'',model:'claude-haiku-4-5-20251001',sbUrl:'',sbKey:'',lang:'en',max:8,uzRss:true,autoN:0};
 let cfg=loadCfg();
 function loadCfg(){try{return {...defaultCfg,...JSON.parse(localStorage.getItem(LS)||'{}')};}catch{return {...defaultCfg};}}
 function saveCfg(){localStorage.setItem(LS,JSON.stringify(cfg));}
+function loadJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'')||fallback;}catch{return fallback;}}
+function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(e){console.warn('local cache save',e.message);}}
+function deviceId(){
+  let id=localStorage.getItem(DEVICE_LS);
+  if(!id){id=(crypto.randomUUID?crypto.randomUUID():'dev-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8));localStorage.setItem(DEVICE_LS,id);}
+  return id;
+}
+function deviceLabel(){
+  const ua=navigator.userAgent||'';
+  const kind=/Mobile|Android|iPhone/i.test(ua)?'핸드폰':/iPad|Tablet/i.test(ua)?'태블릿':'PC';
+  const os=/Windows/i.test(ua)?'Windows':/Mac OS/i.test(ua)?'macOS':/Android/i.test(ua)?'Android':/iPhone|iPad/i.test(ua)?'iOS':/Linux/i.test(ua)?'Linux':'OS 미상';
+  return `${kind} · ${os} · ${deviceId().slice(0,8)}`;
+}
+function nowIso(){return new Date().toISOString();}
+function stableId(url){
+  let h=0x811c9dc5;
+  for(const ch of String(url||'')){h^=ch.charCodeAt(0);h=Math.imul(h,0x01000193);}
+  return 'news_'+(h>>>0).toString(36);
+}
 
 let sb=null;
 function initSb(){
-  if(cfg.sbUrl && cfg.sbKey){ try{ sb=createClient(cfg.sbUrl,cfg.sbKey); }catch(e){ sb=null; } }
-  else sb=null;
+  sb=(cfg.sbUrl && cfg.sbKey)?{ready:true}:null;
 }
 initSb();
 
@@ -424,12 +507,13 @@ async function gnews(url){
   return r.json();
 }
 function mapArticle(a,country,category,lang){
+  const ts=nowIso();
   const it={
-    url:a.url, title:a.title||'', source:a.source?.name||'', country, category, field:'other',
+    id:stableId(a.url), url:a.url, title:a.title||'', source:a.source?.name||'', country, category, field:'other',
     published_at:a.publishedAt, image:a.image||'', description:a.description||'',
     content:a.content||'', lang:lang||'en',
     summary_ko:null,summary_en:null,summary_uz:null,tags:null,
-    enriched:false, bookmarked:false, fetched_at:new Date().toISOString()
+    enriched:false, bookmarked:false, fetched_at:ts, created_at:ts, updated_at:ts, deleted_at:null
   };
   it.field=classifyField(it);
   return it;
@@ -475,9 +559,10 @@ async function refresh(){
           const j=await r.json();
           (j.articles||[]).forEach(a=>{
             if(a.url && !items.has(a.url)){
-              const it={url:a.url,title:a.title||'',source:a.source||'',country:'uz',category:'',field:'other',
+              const ts=nowIso();
+              const it={id:stableId(a.url),url:a.url,title:a.title||'',source:a.source||'',country:'uz',category:'',field:'other',
                 published_at:a.published_at,image:a.image||'',description:a.description||'',content:'',lang:a.lang||'uz',
-                summary_ko:null,summary_en:null,summary_uz:null,tags:null,enriched:false,bookmarked:false,fetched_at:new Date().toISOString()};
+                summary_ko:null,summary_en:null,summary_uz:null,tags:null,enriched:false,bookmarked:false,fetched_at:ts,created_at:ts,updated_at:ts,deleted_at:null};
               it.field=classifyField(it);
               items.set(a.url,it); fresh.set(a.url,it); added++;
             }
@@ -490,6 +575,7 @@ async function refresh(){
 
     lastFetch=new Date();
     pruneItems();
+    saveLocalCache();
     if(sb) await pushToSupabase([...fresh.values()]);
     if(errs.length) toast(`수집 완료 · ${added}건 (오류 ${errs.length})`);
     else toast(`수집 완료 · 새 기사 ${added}건`);
@@ -511,29 +597,98 @@ function pruneItems(){
   }
 }
 
+function normalizeItem(r){
+  const ts=r.updated_at||r.fetched_at||r.published_at||nowIso();
+  return {
+    ...r,
+    id:r.id||stableId(r.url),
+    field:r.field||'other',
+    tags:Array.isArray(r.tags)?r.tags:null,
+    enriched:!!r.enriched,
+    bookmarked:!!r.bookmarked,
+    created_at:r.created_at||r.fetched_at||ts,
+    updated_at:ts,
+    deleted_at:r.deleted_at||null,
+  };
+}
+function newer(a,b){
+  return new Date(a?.updated_at||0).getTime() >= new Date(b?.updated_at||0).getTime();
+}
+function mergeItem(row){
+  const next=normalizeItem(row);
+  const cur=items.get(next.url);
+  if(!cur || newer(next,cur)) items.set(next.url,next);
+}
+function loadLocalCache(){
+  const saved=loadJson(DATA_LS,[]);
+  if(Array.isArray(saved)) saved.forEach(mergeItem);
+}
+function saveLocalCache(){
+  saveJson(DATA_LS,[...items.values()].map(normalizeItem).slice(0,800));
+}
+
 /* ---------------- Supabase sync ---------------- */
+function sbReady(){return !!(cfg.sbUrl&&cfg.sbKey);}
+function sbHeaders(extra={}){
+  return {'apikey':cfg.sbKey,'Authorization':'Bearer '+cfg.sbKey,'content-type':'application/json',...extra};
+}
+async function sbFetch(path,opt={}){
+  const url=cfg.sbUrl.replace(/\/+$/,'')+'/rest/v1/'+path;
+  const res=await fetch(url,{...opt,headers:sbHeaders(opt.headers||{})});
+  if(!res.ok){
+    const body=await res.text().catch(()=>'');
+    throw new Error(`Supabase ${res.status} ${body.slice(0,160)}`);
+  }
+  return res;
+}
 async function pushToSupabase(rows){
-  if(!sb) return;
-  try{
-    const payload=rows.map(r=>({...r}));
-    const {error}=await sb.from('news_items').upsert(payload,{onConflict:'url'});
-    if(error) console.warn('supabase upsert',error.message);
-  }catch(e){ console.warn('supabase',e.message); }
+  if(!sbReady()||!rows.length) return;
+  const payload=rows.map(normalizeItem);
+  await sbFetch('news_items?on_conflict=url',{
+    method:'POST',
+    headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify(payload)
+  });
+}
+async function readCanonical(){
+  if(!sbReady()) return null;
+  const res=await sbFetch('language_sync_meta?key=eq.canonical_version&select=value,updated_at&limit=1');
+  const rows=await res.json();
+  return rows[0]||null;
+}
+async function writeCanonical(value){
+  await sbFetch('language_sync_meta?on_conflict=key',{
+    method:'POST',
+    headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
+    body:JSON.stringify([{key:'canonical_version',value,updated_at:nowIso()}])
+  });
 }
 async function loadFromSupabase(){
-  if(!sb) return;
+  if(!sbReady()) return;
   try{
-    const {data,error}=await sb.from('news_items')
-      .select('*').or(`published_at.gte.${cutoff().toISOString()},bookmarked.eq.true`)
-      .order('published_at',{ascending:false}).limit(500);
-    if(error){ console.warn('supabase load',error.message); return; }
-    (data||[]).forEach(r=>items.set(r.url,r));
+    const canonical=await readCanonical();
+    const localSync=loadJson(SYNC_LS,{canonical_version:null});
+    const res=await sbFetch(`news_items?select=*&or=(published_at.gte.${encodeURIComponent(cutoff().toISOString())},bookmarked.eq.true)&order=updated_at.desc&limit=800`);
+    const data=await res.json();
+    if(canonical?.value && canonical.value!==localSync.canonical_version){
+      items.clear();
+      (data||[]).forEach(mergeItem);
+      saveJson(SYNC_LS,{canonical_version:canonical.value,checked_at:nowIso()});
+      saveLocalCache();
+      toast('클라우드 최종본 기준으로 맞췄습니다');
+      return;
+    }
+    (data||[]).forEach(mergeItem);
+    saveLocalCache();
+    await pushToSupabase([...items.values()]);
   }catch(e){ console.warn('supabase load',e.message); }
 }
 async function patchRow(url,patch){
   const it=items.get(url); if(!it) return;
-  Object.assign(it,patch);
-  if(sb){ try{ await sb.from('news_items').update(patch).eq('url',url); }catch(e){ console.warn(e.message); } }
+  const next={...patch,updated_at:nowIso()};
+  Object.assign(it,next);
+  saveLocalCache();
+  if(sbReady()){ try{ await pushToSupabase([it]); }catch(e){ console.warn(e.message); } }
 }
 
 /* ---------------- Claude enrichment ---------------- */
@@ -743,6 +898,72 @@ function updateStatus(calls){
   status.innerHTML=parts.join(' · ');
 }
 
+async function fetchRemoteRows(limit=2000){
+  if(!sbReady()) return [];
+  const res=await sbFetch(`news_items?select=url,id,updated_at,bookmarked,enriched&order=updated_at.desc&limit=${limit}`);
+  return res.json();
+}
+function manifestHash(rows){
+  const src=rows.map(r=>`${r.url}|${r.updated_at||''}|${r.bookmarked?'1':'0'}|${r.enriched?'1':'0'}`).sort().join('\n');
+  return stableId(src).replace('news_','');
+}
+function syncReport(text){const el=$('#syncReport'); if(el) el.textContent=text;}
+async function checkVersion(){
+  try{
+    if(!sbReady()){ syncReport('Supabase URL과 anon key가 필요합니다.'); return; }
+    const [meta,remote]=await Promise.all([readCanonical(),fetchRemoteRows()]);
+    const local=[...items.values()].map(normalizeItem);
+    let parsed=null; try{parsed=meta?.value?JSON.parse(meta.value):null;}catch{}
+    syncReport([
+      `최종 저장 위치: Supabase news_items`,
+      `canonical_version: ${meta?.value||'없음'}`,
+      `저장 시각: ${parsed?.saved_at||meta?.updated_at||'확인 안 됨'}`,
+      `항목 수: 클라우드 ${remote.length} / 이 기기 ${local.length}`,
+      `마지막 저장 기기: ${parsed?.device_label||'확인 안 됨'} (${(parsed?.device_id||'').slice(0,8)||'id 없음'})`,
+      `manifest/hash: cloud ${manifestHash(remote)} / local ${manifestHash(local)}`
+    ].join('\n'));
+  }catch(e){ syncReport('저장본 확인 실패: '+e.message); }
+}
+async function syncNow(){
+  try{
+    if(!sbReady()){ syncReport('Supabase 미연결: 이 기기 캐시만 저장했습니다.'); saveLocalCache(); return; }
+    await loadFromSupabase();
+    updateStatus(0); render();
+    const remote=await fetchRemoteRows();
+    syncReport(`동기화 완료\n클라우드 ${remote.length}건 / 이 기기 ${items.size}건\ncloud hash ${manifestHash(remote)}`);
+  }catch(e){ syncReport('동기화 실패: '+e.message); }
+}
+async function deleteRemoteUrl(url){
+  await sbFetch('news_items?url=eq.'+encodeURIComponent(url),{
+    method:'DELETE',
+    headers:{'Prefer':'return=minimal'}
+  });
+}
+async function makeCanonical(){
+  try{
+    if(!sbReady()){ syncReport('Supabase 연결 후 최종본을 지정할 수 있습니다.'); return; }
+    const local=[...items.values()].map(normalizeItem);
+    await pushToSupabase(local);
+    const remote=await fetchRemoteRows();
+    const keep=new Set(local.map(r=>r.url));
+    const stale=remote.filter(r=>!keep.has(r.url));
+    for(const r of stale) await deleteRemoteUrl(r.url);
+    const value=JSON.stringify({
+      saved_at:nowIso(),
+      revision:'newsdesk-'+Date.now().toString(36),
+      device_label:deviceLabel(),
+      device_id:deviceId(),
+      app_version:APP_VERSION,
+      count:local.length,
+      manifest:manifestHash(local)
+    });
+    await writeCanonical(value);
+    saveJson(SYNC_LS,{canonical_version:value,checked_at:nowIso()});
+    syncReport(`최종본 저장 완료\n업로드 ${local.length}건 / 원격 전용 정리 ${stale.length}건\n${value}`);
+    toast('이 기기를 클라우드 최종본으로 저장했습니다');
+  }catch(e){ syncReport('최종본 저장 실패: '+e.message); }
+}
+
 /* ---------------- settings modal ---------------- */
 const scrim=$('#scrim');
 function openSettings(){
@@ -767,23 +988,35 @@ $('#saveBtn').onclick=()=>{
 };
 $('#copySql').onclick=()=>{const t=$('#sqlBlock').textContent.replace('복사','').trim();navigator.clipboard.writeText(t);toast('SQL 복사됨');};
 $('#copyEdge').onclick=()=>{const t=$('#edgeBlock').textContent.replace('복사','').trim();navigator.clipboard.writeText(t);toast('명령 복사됨');};
+$('#syncNowBtn').onclick=syncNow;
+$('#checkVersionBtn').onclick=checkVersion;
+$('#makeCanonicalBtn').onclick=makeCanonical;
 $('#testBtn').onclick=async()=>{
   const out=$('#testOut'); out.innerHTML='테스트 중…';
   const g=$('#cfgGnews').value.trim(), u=$('#cfgSbUrl').value.trim(), k=$('#cfgSbKey').value.trim();
-  let lines=[];
+  let lines=[], gOk=false, sbOk=false;
   // gnews
   if(g){
     try{ const r=await fetch(`https://gnews.io/api/v4/top-headlines?category=general&lang=en&max=1&apikey=${g}`);
-      lines.push(r.ok?'<span class="ok">✓ GNews OK</span>':`<span class="err">✗ GNews ${r.status}</span>`);
+      gOk=r.ok; lines.push(r.ok?'<span class="ok">✓ GNews OK</span>':`<span class="err">✗ GNews ${r.status}</span>`);
     }catch(e){ lines.push('<span class="err">✗ GNews 네트워크 오류</span>'); }
   } else lines.push('<span class="err">· GNews 키 없음</span>');
   // supabase
   if(u&&k){
-    try{ const c=createClient(u,k); const {error}=await c.from('news_items').select('url').limit(1);
-      lines.push(error?`<span class="err">✗ Supabase: ${error.message}</span>`:'<span class="ok">✓ Supabase OK</span>');
+    try{
+      const r=await fetch(u.replace(/\/+$/,'')+'/rest/v1/news_items?select=url&limit=1',{headers:{apikey:k,Authorization:'Bearer '+k}});
+      sbOk=r.ok; lines.push(r.ok?'<span class="ok">✓ Supabase OK</span>':`<span class="err">✗ Supabase ${r.status}</span>`);
     }catch(e){ lines.push('<span class="err">✗ Supabase 연결 실패</span>'); }
   } else lines.push('<span class="err">· Supabase 미설정 (선택)</span>');
   out.innerHTML=lines.join('<br>');
+  if(gOk||sbOk){
+    cfg={...cfg,gnews:g,claude:$('#cfgClaude').value.trim(),model:$('#cfgModel').value,sbUrl:u,sbKey:k,lang:$('#cfgLang').value,max:+$('#cfgMax').value||8,uzRss:$('#cfgUzRss').checked,autoN:Math.max(0,+$('#cfgAutoN').value||0)};
+    saveCfg(); initSb();
+    out.innerHTML += '<br><span class="ok">즉시 동기화 실행 중…</span>';
+    await syncNow();
+    if(gOk) await refresh();
+    out.innerHTML += '<br><span class="ok">즉시 동기화 완료</span>';
+  }
 };
 
 $('#refreshBtn').onclick=refresh;
@@ -791,7 +1024,9 @@ $('#refreshBtn').onclick=refresh;
 /* ---------------- boot ---------------- */
 async function boot(){
   buildRail();
+  loadLocalCache();
   if(sb){ await loadFromSupabase(); }
+  saveLocalCache();
   updateStatus(0);
   render();
   if(!cfg.gnews){ /* show empty */ }
